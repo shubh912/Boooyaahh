@@ -1,0 +1,13 @@
+{
+  "name": "Art & Beyond",
+  "short_name": "Art & Beyond",
+  "description": "Painting workshops in Pune & Mumbai. No experience needed.",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#FAF6EF",
+  "theme_color": "#C05C2E",
+  "icons": [
+    { "src": "/favicon-32x32.png", "sizes": "32x32", "type": "image/png" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

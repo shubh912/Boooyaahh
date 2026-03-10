@@ -1,0 +1,17 @@
+# Art & Beyond — _redirects
+# Fallback for environments that read this instead of netlify.toml.
+# netlify.toml takes precedence when both are present.
+
+/workshops-pune              /#events     301
+/workshops-mumbai            /#events     301
+/corporate-art-workshop      /#offerings  301
+/corporate-art               /#offerings  301
+/bachelorette-painting-party /#offerings  301
+/bachelorette-painting       /#offerings  301
+/beginner-art-classes        /#events     301
+/paint-and-sip-pune          /#events     301
+/art-date-night              /#events     301
+
+/privacy-policy              /privacy-policy.html   200
+/terms                       /terms.html            200
+/refund-policy               /refund-policy.html    200

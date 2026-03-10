@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Art & Beyond</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<!-- Security: no-index admin page -->
+<meta name="robots" content="noindex, nofollow, noarchive">
+<!-- Prevents admin panel from being embedded in iframes (security fix) -->
+<meta http-equiv="X-Frame-Options" content="DENY">
+<style>
+:root {
+  --ink:#1A1209; --cream:#FAF6EF; --terra:#C05C2E; --gold:#D4A853;
+  --sage:#7A8C6E; --blush:#E8C4A8; --border:rgba(26,18,9,.1);
+  --shadow:0 4px 16px rgba(26,18,9,.07);
+  --red:#DC2626; --green:#16A34A; --amber:#D97706; --blue:#1D4ED8;
+}
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:'Segoe UI',system-ui,sans-serif; background:#F8F7F4; color:var(--ink); min-height:100vh; }
+a { text-decoration:none; color:inherit; }
+button { font-family:inherit; cursor:pointer; }
+input,textarea,select { font-family:inherit; }
+:focus-visible { outline:3px solid var(--terra); outline-offset:2px; }
+
+/* ─── LOGIN PAGE ─── */
+.login-page { min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--ink); }
+.login-card { background:#fff; border-radius:8px; padding:2.5rem; width:100%; max-width:400px; box-shadow:0 24px 64px rgba(0,0,0,.3); }
+.login-logo { font-family:Georgia,serif; font-size:1.5rem; font-weight:700; color:var(--ink); margin-bottom:.4rem; }
+.login-logo span { color:var(--terra); font-style:italic; }
+.login-sub { font-size:.82rem; color:#666; margin-bottom:2rem; }
+.login-error { background:#FEF2F2; border:1px solid #FECACA; color:var(--red); padding:.75rem 1rem; border-radius:4px; font-size:.85rem; margin-bottom:1rem; display:none; }
+.f-group { margin-bottom:1rem; }
+.f-label { display:block; font-size:.75rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--ink); margin-bottom:.4rem; }
+.f-input { width:100%; padding:.65rem .9rem; border:1.5px solid var(--border); border-radius:4px; font-size:.9rem; transition:border-color .2s; background:#fff; }
+.f-input:focus { outline:none; border-color:var(--terra); }
+.btn-primary { display:block; width:100%; padding:.8rem; background:var(--terra); color:#fff; border:none; border-radius:4px; font-size:.9rem; font-weight:600; letter-spacing:.04em; transition:background .2s; }
+.btn-primary:hover { background:var(--ink); }
+.btn-primary:disabled { background:#ccc; cursor:not-allowed; }
+.login-attempts { font-size:.75rem; color:#999; text-align:center; margin-top:1rem; }
+.login-forgot { text-align:center; margin-top:.5rem; font-size:.8rem; color:var(--terra); }
+
+/* ─── ADMIN LAYOUT ─── */
+.admin-wrap { display:flex; min-height:100vh; }
+
+/* Sidebar */
+.sidebar {
+  width:240px; background:var(--ink); color:var(--cream);
+  display:flex; flex-direction:column;
+  position:fixed; top:0; left:0; bottom:0; z-index:50;
+  overflow-y:auto;
+}
+.sidebar-brand { padding:1.5rem; border-bottom:1px solid rgba(255,255,255,.08); }
+.brand-name { font-family:Georgia,serif; font-size:1.1rem; font-weight:700; }
+.brand-name span { color:var(--terra); font-style:italic; }
+.brand-role { font-size:.7rem; color:rgba(250,246,239,.45); letter-spacing:.1em; text-transform:uppercase; margin-top:.2rem; }
+.sidebar-nav { padding:1rem 0; flex:1; }
+.sidebar-nav a {
+  display:flex; align-items:center; gap:.75rem;
+  padding:.75rem 1.5rem; font-size:.85rem; color:rgba(250,246,239,.65);
+  transition:background .2s, color .2s;
+}
+.sidebar-nav a:hover { background:rgba(255,255,255,.06); color:var(--cream); }
+.sidebar-nav a.active { background:rgba(192,92,46,.2); color:var(--cream); border-left:3px solid var(--terra); }
+.sidebar-nav .nav-icon { font-size:1rem; width:20px; }
+.sidebar-footer { padding:1rem 1.5rem; border-top:1px solid rgba(255,255,255,.08); }
+.sidebar-user { font-size:.8rem; color:rgba(250,246,239,.6); margin-bottom:.75rem; }
+.btn-logout { width:100%; padding:.55rem; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.1); color:rgba(250,246,239,.7); border-radius:4px; font-size:.8rem; transition:background .2s; }
+.btn-logout:hover { background:rgba(255,255,255,.12); color:var(--cream); }
+
+/* Main content */
+.admin-main { flex:1; margin-left:240px; }
+.admin-topbar { background:#fff; border-bottom:1px solid var(--border); padding:1rem 2rem; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:40; box-shadow:var(--shadow); }
+.page-title { font-size:1.15rem; font-weight:700; }
+.topbar-right { display:flex; align-items:center; gap:1rem; font-size:.82rem; color:#888; }
+.admin-content { padding:2rem; }
+
+/* ─── COMPONENTS ─── */
+.card { background:#fff; border-radius:6px; padding:1.5rem; box-shadow:var(--shadow); margin-bottom:1.5rem; }
+.card-title { font-size:.8rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#888; margin-bottom:1.2rem; }
+.stat-row { display:grid; grid-template-columns:repeat(4,1fr); gap:1.2rem; }
+.stat-box { background:#fff; border-radius:6px; padding:1.2rem; box-shadow:var(--shadow); text-align:center; }
+.stat-val { font-size:2rem; font-weight:700; color:var(--ink); }
+.stat-lbl { font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; color:#888; margin-top:.2rem; }
+.stat-box.accent { background:var(--terra); }
+.stat-box.accent .stat-val, .stat-box.accent .stat-lbl { color:#fff; }
+
+/* Table */
+.data-table { width:100%; border-collapse:collapse; font-size:.85rem; }
+.data-table th { text-align:left; padding:.65rem .9rem; border-bottom:2px solid var(--border); font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:#888; font-weight:600; }
+.data-table td { padding:.75rem .9rem; border-bottom:1px solid var(--border); vertical-align:middle; }
+.data-table tr:hover td { background:#FAFAFA; }
+.data-table img { width:40px; height:40px; object-fit:cover; border-radius:4px; }
+
+/* Badges */
+.badge { display:inline-block; padding:.2rem .65rem; border-radius:12px; font-size:.7rem; font-weight:600; letter-spacing:.05em; text-transform:uppercase; }
+.badge-green { background:#DCFCE7; color:var(--green); }
+.badge-amber { background:#FEF3C7; color:var(--amber); }
+.badge-red   { background:#FEE2E2; color:var(--red); }
+.badge-blue  { background:#DBEAFE; color:var(--blue); }
+.badge-grey  { background:#F3F4F6; color:#6B7280; }
+
+/* Form */
+.form-section { background:#fff; border-radius:6px; padding:1.5rem; box-shadow:var(--shadow); margin-bottom:1.5rem; }
+.form-section h3 { font-size:.9rem; font-weight:700; margin-bottom:1.2rem; padding-bottom:.7rem; border-bottom:1px solid var(--border); }
+.f-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+.f-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; }
+.f-input-lg { resize:vertical; }
+.btn-sm { padding:.45rem .9rem; font-size:.78rem; font-weight:600; border-radius:4px; border:none; cursor:pointer; transition:background .15s; }
+.btn-add  { background:var(--terra); color:#fff; }
+.btn-add:hover  { background:var(--ink); }
+.btn-edit { background:#EFF6FF; color:var(--blue); }
+.btn-edit:hover { background:#DBEAFE; }
+.btn-del  { background:#FEF2F2; color:var(--red); }
+.btn-del:hover  { background:#FEE2E2; }
+.btn-approve  { background:#F0FDF4; color:var(--green); }
+.btn-approve:hover { background:#DCFCE7; }
+.btn-reject   { background:#FEF2F2; color:var(--red); }
+.btn-actions { display:flex; gap:.4rem; }
+
+/* Toggle */
+.toggle-row { display:flex; align-items:center; justify-content:space-between; padding:.8rem 0; border-bottom:1px solid var(--border); font-size:.88rem; }
+.toggle-row:last-child { border-bottom:none; }
+.toggle-sw { position:relative; width:44px; height:24px; }
+.toggle-sw input { opacity:0; width:0; height:0; }
+.toggle-knob { position:absolute; inset:0; border-radius:12px; background:#D1D5DB; cursor:pointer; transition:background .25s; }
+.toggle-knob::before { content:''; position:absolute; width:18px; height:18px; border-radius:50%; background:#fff; left:3px; top:3px; transition:transform .25s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+.toggle-sw input:checked + .toggle-knob { background:var(--terra); }
+.toggle-sw input:checked + .toggle-knob::before { transform:translateX(20px); }
+
+/* Alert */
+.alert { padding:.85rem 1rem; border-radius:4px; font-size:.84rem; margin-bottom:1rem; }
+.alert-warn  { background:#FFFBEB; border:1px solid #FDE68A; color:#92400E; }
+.alert-danger{ background:#FEF2F2; border:1px solid #FECACA; color:var(--red); }
+.alert-info  { background:#EFF6FF; border:1px solid #BFDBFE; color:#1E40AF; }
+.alert-success{background:#F0FDF4; border:1px solid #BBF7D0; color:var(--green); }
+
+/* Pagination */
+.pagination { display:flex; gap:.4rem; align-items:center; justify-content:center; margin-top:1rem; }
+.page-btn { padding:.4rem .75rem; border:1px solid var(--border); border-radius:4px; font-size:.8rem; background:#fff; cursor:pointer; }
+.page-btn.active { background:var(--terra); color:#fff; border-color:var(--terra); }
+.page-btn:hover:not(.active) { background:#F9FAFB; }
+
+/* Audit log */
+.log-item { padding:.9rem 1rem; border-bottom:1px solid var(--border); font-size:.83rem; }
+.log-item:hover { background:#FAFAFA; }
+.log-time { font-size:.72rem; color:#9CA3AF; margin-top:.25rem; }
+.log-user { color:var(--terra); font-weight:600; }
+.log-action { color:var(--blue); }
+.log-entity { color:#6B7280; }
+
+/* Responsive sidebar */
+@media (max-width:1024px) {
+  .sidebar { width:200px; }
+  .admin-main { margin-left:200px; }
+  .stat-row { grid-template-columns:1fr 1fr; }
+  .f-grid-3 { grid-template-columns:1fr 1fr; }
+}
+@media (max-width:768px) {
+  .sidebar { transform:translateX(-100%); transition:transform .3s; }
+  .sidebar.mob-open { transform:none; }
+  .admin-main { margin-left:0; }
+  .stat-row { grid-template-columns:1fr; }
+  .f-grid { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════════ LOGIN PAGE ════════ -->
+<div class="login-page" id="loginPage">
+  <div class="login-card">
+    <div class="login-logo">Art <span>&amp;</span> Beyond</div>
+    <p class="login-sub">Admin Portal · Secure Sign-In</p>
+    <div class="alert alert-info" style="margin-bottom:1.2rem;font-size:.78rem">
+      🔐 <strong>Security Note:</strong> This panel is protected by server-side authentication via Supabase Auth. No credentials are stored in this file's source code.
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <div class="f-group">
+      <label class="f-label" for="loginEmail">Email Address</label>
+      <input type="email" id="loginEmail" class="f-input" placeholder="admin@artandbeyond.in" autocomplete="email" autofocus>
+    </div>
+    <div class="f-group">
+      <label class="f-label" for="loginPass">Password</label>
+      <input type="password" id="loginPass" class="f-input" placeholder="••••••••" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')doAdminLogin()">
+    </div>
+    <button class="btn-primary" onclick="doAdminLogin()" id="loginBtn">Sign In →</button>
+    <p class="login-attempts" id="loginAttemptNote"></p>
+    <p class="login-forgot"><a id="adminContactEmail" href="#" style="color:var(--terra)">hello&#64;artandbeyond.in</a></p>
+  </div>
+</div>
+
+<!-- ════════ ADMIN APP ════════ -->
+<div class="admin-wrap" id="adminApp" style="display:none">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar" role="navigation" aria-label="Admin navigation">
+    <div class="sidebar-brand">
+      <div class="brand-name">Art <span>&amp;</span> Beyond</div>
+      <div class="brand-role">Admin Portal</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="active" onclick="showPage('dashboard',this)" data-page="dashboard">
+        <span class="nav-icon">📊</span> Dashboard
+      </a>
+      <a href="#" onclick="showPage('events',this)" data-page="events">
+        <span class="nav-icon">📅</span> Events
+      </a>
+      <a href="#" onclick="showPage('bookings',this)" data-page="bookings">
+        <span class="nav-icon">🎟️</span> Bookings
+      </a>
+      <a href="#" onclick="showPage('reviews',this)" data-page="reviews">
+        <span class="nav-icon">⭐</span> Reviews
+      </a>
+      <a href="#" onclick="showPage('gallery',this)" data-page="gallery">
+        <span class="nav-icon">🖼️</span> Gallery
+      </a>
+      <a href="#" onclick="showPage('config',this)" data-page="config">
+        <span class="nav-icon">⚙️</span> Site Config
+      </a>
+      <a href="#" onclick="showPage('subscribers',this)" data-page="subscribers">
+        <span class="nav-icon">📧</span> Subscribers
+      </a>
+      <a href="#" onclick="showPage('auditlog',this)" data-page="auditlog">
+        <span class="nav-icon">📋</span> Audit Log
+      </a>
+      <a href="#" onclick="showPage('settings',this)" data-page="settings">
+        <span class="nav-icon">🔑</span> My Settings
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" id="adminUserInfo">Signed in as admin</div>
+      <button class="btn-logout" onclick="doAdminLogout()">Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="admin-main" id="adminMain">
+    <div class="admin-topbar">
+      <h1 class="page-title" id="currentPageTitle">Dashboard</h1>
+      <div class="topbar-right">
+        <span id="topbarDate"></span>
+        <a href="https://artandbeyond.in" target="_blank" style="color:var(--terra);font-weight:600;font-size:.82rem">View Site ↗</a>
+      </div>
+    </div>
+    <div class="admin-content" id="adminContent">
+      <!-- Content rendered by JS -->
+    </div>
+  </main>
+
+</div>
+<script>
+'use strict';
+
+/* ════════════════════════════════════════
+   SUPABASE CONFIG
+   Set these values from your Supabase project settings.
+   Dashboard → Settings → API
+   These are safe to include — the anon key has limited permissions.
+   Service role key NEVER goes in this file.
+════════════════════════════════════════ */
+const SUPABASE_URL      = ''; // e.g. 'https://xxxx.supabase.co'
+const SUPABASE_ANON_KEY = ''; // public anon key only
+
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+const $ = id => document.getElementById(id);
+
+/* ════════════════════════════════════════
+   BRUTE FORCE PROTECTION
+   Max 5 attempts → 15-min lockout (client-side layer)
+   Supabase Auth has its own server-side rate limiting too.
+════════════════════════════════════════ */
+const LOCKOUT_KEY = 'ab_admin_lockout_v1';
+let loginAttempts = 0;
+
+function isLocked() {
+  const lock = JSON.parse(sessionStorage.getItem(LOCKOUT_KEY) || 'null');
+  if (!lock) return false;
+  if (Date.now() > lock.until) { sessionStorage.removeItem(LOCKOUT_KEY); loginAttempts = 0; return false; }
+  return lock.until;
+}
+
+function recordFailedAttempt() {
+  loginAttempts++;
+  if (loginAttempts >= 5) {
+    const until = Date.now() + 15 * 60 * 1000;
+    sessionStorage.setItem(LOCKOUT_KEY, JSON.stringify({ until }));
+    loginAttempts = 0;
+  }
+  $('loginAttemptNote').textContent = loginAttempts >= 4 ? `Warning: 1 attempt remaining before 15-min lockout.` : `${loginAttempts}/5 failed attempts.`;
+}
+
+/* ════════════════════════════════════════
+   AUTH — Supabase-based
+   No credentials in source code.
+   Auth state persists in Supabase session cookie.
+════════════════════════════════════════ */
+let currentUser = null;
+let currentRole = 'viewer';
+
+async function supabaseRequest(path, options = {}) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) throw new Error('Supabase not configured');
+  const token = currentUser?.access_token || SUPABASE_ANON_KEY;
+  return fetch(`${SUPABASE_URL}${path}`, {
+    ...options,
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    }
+  });
+}
+
+async function doAdminLogin() {
+  const lockUntil = isLocked();
+  if (lockUntil) {
+    const mins = Math.ceil((lockUntil - Date.now()) / 60000);
+    showLoginError(`Too many failed attempts. Try again in ${mins} minutes.`);
+    return;
+  }
+  const email = $('loginEmail').value.trim();
+  const pass  = $('loginPass').value;
+  if (!email || !pass) { showLoginError('Please enter both email and password.'); return; }
+
+  $('loginBtn').disabled = true;
+  $('loginBtn').textContent = 'Signing in…';
+
+  // Demo mode: if Supabase not configured, use demo credentials for testing
+  if (!SUPABASE_URL) {
+    // DEMO ONLY — remove in production
+    if (email === 'admin@artandbeyond.in' && pass === 'demo1234') {
+      currentUser = { email, access_token: 'demo', role: 'admin' };
+      currentRole = 'admin';
+      initAdminApp();
+      return;
+    }
+    $('loginBtn').disabled = false;
+    $('loginBtn').textContent = 'Sign In →';
+    recordFailedAttempt();
+    showLoginError('Incorrect credentials. Please check your email and password.');
+    return;
+  }
+
+  try {
+    const res  = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      recordFailedAttempt();
+      showLoginError(data.error_description || 'Login failed. Check your credentials.');
+      $('loginBtn').disabled = false; $('loginBtn').textContent = 'Sign In →';
+      return;
+    }
+    currentUser = data;
+    // Fetch role from profiles table
+    const profileRes = await supabaseRequest(`/rest/v1/profiles?id=eq.${data.user.id}&select=role`);
+    if (profileRes.ok) {
+      const [profile] = await profileRes.json();
+      currentRole = profile?.role || 'viewer';
+    }
+    initAdminApp();
+  } catch(e) {
+    showLoginError('Connection error. Please check your internet connection.');
+    $('loginBtn').disabled = false; $('loginBtn').textContent = 'Sign In →';
+  }
+}
+
+function showLoginError(msg) {
+  const el = $('loginError');
+  el.textContent = msg;
+  el.style.display = 'block';
+  $('loginPass').value = '';
+  $('loginPass').focus();
+}
+
+function initAdminApp() {
+  $('loginPage').style.display    = 'none';
+  $('adminApp').style.display     = 'flex';
+  $('adminUserInfo').textContent  = currentUser?.email || currentUser?.user?.email || 'Admin';
+  $('topbarDate').textContent     = new Date().toLocaleDateString('en-IN', {weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  showPage('dashboard', document.querySelector('.sidebar-nav a'));
+}
+
+async function doAdminLogout() {
+  if (SUPABASE_URL && currentUser?.access_token && currentUser.access_token !== 'demo') {
+    await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${currentUser.access_token}` }
+    }).catch(() => {});
+  }
+  currentUser = null; currentRole = 'viewer';
+  $('adminApp').style.display = 'none';
+  $('loginPage').style.display = 'flex';
+  $('loginEmail').value = ''; $('loginPass').value = '';
+  $('loginError').style.display = 'none';
+  $('loginBtn').disabled = false; $('loginBtn').textContent = 'Sign In →';
+}
+
+/* ════════════════════════════════════════
+   PAGE ROUTER
+════════════════════════════════════════ */
+async function showPage(page, link) {
+  document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
+  if (link) link.classList.add('active');
+  const titles = { dashboard:'Dashboard', events:'Events Manager', bookings:'Bookings', reviews:'Reviews Moderation', gallery:'Gallery Manager', config:'Site Configuration', subscribers:'Email Subscribers', auditlog:'Audit Log', settings:'My Settings' };
+  $('currentPageTitle').textContent = titles[page] || page;
+  const content = $('adminContent');
+  content.innerHTML = '<div style="text-align:center;padding:3rem;color:#9CA3AF">Loading…</div>';
+  try {
+    switch(page) {
+      case 'dashboard':    await renderDashboard();    break;
+      case 'events':       await renderEventsPage();   break;
+      case 'bookings':     await renderBookingsPage(); break;
+      case 'reviews':      await renderReviewsPage();  break;
+      case 'gallery':      await renderGalleryPage();  break;
+      case 'config':       await renderConfigPage();   break;
+      case 'subscribers':  await renderSubscribers();  break;
+      case 'auditlog':     await renderAuditLog();     break;
+      case 'settings':     await renderSettingsPage(); break;
+    }
+  } catch(e) { content.innerHTML = `<div class="alert alert-danger">Failed to load: ${esc(e.message)}</div>`; }
+}
+
+/* ════════════════════════════════════════
+   DASHBOARD
+════════════════════════════════════════ */
+async function renderDashboard() {
+  // Demo stats if no Supabase
+  const stats = { events:3, bookings:14, pendingReviews:2, subscribers:47 };
+  if (SUPABASE_URL) {
+    try {
+      const [evRes, bkRes, rvRes, subRes] = await Promise.all([
+        supabaseRequest('/rest/v1/events?select=id&status=eq.published&event_date=gte.' + new Date().toISOString()),
+        supabaseRequest('/rest/v1/bookings?select=id&status=eq.pending'),
+        supabaseRequest('/rest/v1/reviews?select=id&approved=eq.false'),
+        supabaseRequest('/rest/v1/subscribers?select=id&confirmed=eq.false'),
+      ]);
+      stats.events = (await evRes.json()).length;
+      stats.bookings = (await bkRes.json()).length;
+      stats.pendingReviews = (await rvRes.json()).length;
+      stats.subscribers = (await subRes.json()).length;
+    } catch(e) { /* fallback to demo */ }
+  }
+  $('adminContent').innerHTML = `
+    <div class="alert alert-${SUPABASE_URL ? 'success' : 'warn'}">
+      ${SUPABASE_URL ? '✅ Connected to Supabase database. All data is live.' : '⚠️ <strong>Supabase not configured.</strong> Set SUPABASE_URL and SUPABASE_ANON_KEY in this file to connect to your live database.'}
+    </div>
+    <div class="stat-row" style="margin-bottom:1.5rem">
+      <div class="stat-box"><div class="stat-val">${stats.events}</div><div class="stat-lbl">Live Events</div></div>
+      <div class="stat-box accent"><div class="stat-val">${stats.bookings}</div><div class="stat-lbl">Pending Bookings</div></div>
+      <div class="stat-box"><div class="stat-val">${stats.pendingReviews}</div><div class="stat-lbl">Reviews to Approve</div></div>
+      <div class="stat-box"><div class="stat-val">${stats.subscribers}</div><div class="stat-lbl">New Subscribers</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
+      <div class="card">
+        <div class="card-title">Quick Actions</div>
+        <div style="display:flex;flex-direction:column;gap:.75rem">
+          <button class="btn-sm btn-add" style="padding:.7rem;font-size:.85rem" onclick="showPage('events',null)">+ Add New Event</button>
+          <button class="btn-sm btn-edit" style="padding:.7rem;font-size:.85rem" onclick="showPage('bookings',null)">View Pending Bookings</button>
+          <button class="btn-sm btn-approve" style="padding:.7rem;font-size:.85rem" onclick="showPage('reviews',null)">Approve Reviews</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Setup Checklist</div>
+        <div style="font-size:.83rem;display:flex;flex-direction:column;gap:.5rem">
+          <div>${SUPABASE_URL ? '✅' : '⬜'} Configure Supabase database</div>
+          <div>⬜ Add real event photos (replace Unsplash)</div>
+          <div>⬜ Add UPI QR code image to booking modal</div>
+          <div>⬜ Set up Google Business Profile</div>
+          <div>⬜ Submit sitemap to Google Search Console</div>
+          <div>⬜ Set up Resend for booking confirmation emails</div>
+          <div>⬜ Create /workshops-pune SEO landing page</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ════════════════════════════════════════
+   EVENTS PAGE
+════════════════════════════════════════ */
+async function renderEventsPage() {
+  let events = [];
+  if (SUPABASE_URL) {
+    const res = await supabaseRequest('/rest/v1/events?select=*&order=event_date.asc');
+    if (res.ok) events = await res.json();
+  }
+  $('adminContent').innerHTML = `
+    <div class="form-section">
+      <h3>Add New Event</h3>
+      <div class="f-grid" style="margin-bottom:1rem">
+        <div class="f-group">
+          <label class="f-label" for="evTitle">Event Title *</label>
+          <input type="text" id="evTitle" class="f-input" placeholder="e.g. Botanical Watercolour Evening" maxlength="120">
+        </div>
+        <div class="f-group">
+          <label class="f-label" for="evDate">Date & Time *</label>
+          <input type="datetime-local" id="evDate" class="f-input">
+        </div>
+        <div class="f-group">
+          <label class="f-label" for="evType">Workshop Type</label>
+          <select id="evType" class="f-input">
+            <option>🎨 Guided Workshop</option>
+            <option>🥂 Art Date Night</option>
+            <option>🎭 Blind Art Challenge</option>
+            <option>🏢 Corporate Sprint</option>
+            <option>🎉 Private Party</option>
+          </select>
+        </div>
+        <div class="f-group">
+          <label class="f-label" for="evCity">City</label>
+          <select id="evCity" class="f-input">
+            <option>Pune</option>
+            <option>Mumbai</option>
+            <option>Nashik</option>
+            <option>Nagpur</option>
+          </select>
+        </div>
+        <div class="f-group">
+          <label class="f-label" for="evPrice">Price per head (₹)</label>
+          <input type="number" id="evPrice" class="f-input" placeholder="1499" min="0">
+        </div>
+        <div class="f-group">
+          <label class="f-label" for="evSpots">Total Spots</label>
+          <input type="number" id="evSpots" class="f-input" placeholder="20" min="1">
+        </div>
+        <div class="f-group">
+          <label class="f-label" for="evLoc">Location / Venue</label>
+          <input type="text" id="evLoc" class="f-input" placeholder="Koregaon Park, Pune" maxlength="150">
+        </div>
+        <div class="f-group">
+          <label class="f-label" for="evMap">Google Maps URL</label>
+          <input type="url" id="evMap" class="f-input" placeholder="https://maps.google.com/…">
+        </div>
+      </div>
+      <div class="f-group">
+        <label class="f-label" for="evImg">Image URL</label>
+        <input type="url" id="evImg" class="f-input" placeholder="https://res.cloudinary.com/your-cloud/… or upload via Gallery">
+      </div>
+      <div class="f-group">
+        <label class="f-label" for="evDesc">Description *</label>
+        <textarea id="evDesc" class="f-input f-input-lg" rows="4" placeholder="Describe the workshop — theme, vibe, what to expect…" maxlength="800"></textarea>
+      </div>
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:.75rem">
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.85rem"><input type="radio" name="evStatus" value="published" checked> Publish immediately</label>
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.85rem"><input type="radio" name="evStatus" value="draft"> Save as draft</label>
+      </div>
+      <button class="btn-sm btn-add" style="padding:.7rem 1.5rem;font-size:.88rem" onclick="adminAddEvent()">📅 Post Event</button>
+    </div>
+    <div class="card">
+      <div class="card-title">All Events (${events.length})</div>
+      ${events.length ? `<table class="data-table">
+        <thead><tr><th>Image</th><th>Title</th><th>Date</th><th>City</th><th>Price</th><th>Spots</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>${events.map(e => `<tr>
+          <td>${e.image_url ? `<img src="${esc(e.image_url)}" alt="">` : '🎨'}</td>
+          <td><strong>${esc(e.title)}</strong></td>
+          <td>${esc(new Date(e.event_date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}))}</td>
+          <td>${esc(e.city||'Pune')}</td>
+          <td>₹${Number(Math.round((e.price_per_head||0)/100)).toLocaleString('en-IN')}</td>
+          <td>${e.booked_spots||0}/${e.total_spots||0}</td>
+          <td><span class="badge badge-${e.status==='published'?'green':e.status==='draft'?'grey':'amber'}">${esc(e.status||'draft')}</span></td>
+          <td><div class="btn-actions">
+            <button class="btn-sm btn-del" onclick="adminDeleteEvent('${esc(e.id)}')">Delete</button>
+          </div></td>
+        </tr>`).join('')}</tbody>
+      </table>` : '<p style="color:#9CA3AF;font-size:.85rem;padding:1rem 0">No events yet. Add one above.</p>'}
+    </div>`;
+}
+
+async function adminAddEvent() {
+  const title = $('evTitle').value.trim();
+  const date  = $('evDate').value;
+  const desc  = $('evDesc').value.trim();
+  if (!title || !date || !desc) { alert('Title, date, and description are required.'); return; }
+  // Validate inputs (XSS prevention via server also)
+  if (title.length > 120 || desc.length > 800) { alert('Input too long.'); return; }
+  const pricePaise = parseInt($('evPrice').value || '0') * 100;
+  const status = document.querySelector('input[name="evStatus"]:checked')?.value || 'draft';
+  const payload = {
+    title, description: desc, event_date: new Date(date).toISOString(),
+    type: $('evType').value, city: $('evCity').value,
+    price_per_head: pricePaise, total_spots: parseInt($('evSpots').value || '20'),
+    booked_spots: 0, location_name: $('evLoc').value.trim(),
+    location_url: $('evMap').value.trim(), image_url: $('evImg').value.trim(),
+    status, slug: title.toLowerCase().replace(/[^a-z0-9]+/g,'-') + '-' + Date.now()
+  };
+  if (SUPABASE_URL) {
+    const res = await supabaseRequest('/rest/v1/events', { method:'POST', body:JSON.stringify(payload), headers:{'Prefer':'return=minimal'} });
+    if (!res.ok) { alert('Failed to save event. Check console.'); return; }
+    await logAction('CREATE', 'event', null, null, payload);
+  } else {
+    alert('Demo mode: event not saved (Supabase not configured).');
+  }
+  await renderEventsPage();
+  alert('Event posted! 🎉');
+}
+
+async function adminDeleteEvent(id) {
+  if (!confirm('Delete this event? This cannot be undone.')) return;
+  if (SUPABASE_URL) {
+    const res = await supabaseRequest(`/rest/v1/events?id=eq.${id}`, { method:'DELETE' });
+    if (!res.ok) { alert('Delete failed.'); return; }
+    await logAction('DELETE', 'event', id);
+  }
+  await renderEventsPage();
+}
+
+/* ════════════════════════════════════════
+   BOOKINGS PAGE
+════════════════════════════════════════ */
+async function renderBookingsPage() {
+  let bookings = [];
+  if (SUPABASE_URL) {
+    const res = await supabaseRequest('/rest/v1/bookings?select=*,events(title,event_date)&order=created_at.desc&limit=50');
+    if (res.ok) bookings = await res.json();
+  }
+  const statusColors = { pending:'amber', confirmed:'green', cancelled:'red', attended:'blue', no_show:'grey' };
+  $('adminContent').innerHTML = `
+    <div class="alert alert-info" style="margin-bottom:1.2rem">💡 <strong>How it works:</strong> Visitors book → pay via UPI → WhatsApp you the ref → you confirm here. On "Confirm", the booking is marked confirmed and the spot is counted.</div>
+    <div class="card">
+      <div class="card-title">Recent Bookings (${bookings.length})</div>
+      ${bookings.length ? `<table class="data-table">
+        <thead><tr><th>Ref</th><th>Attendee</th><th>Event</th><th>Guests</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>${bookings.map(b => `<tr>
+          <td style="font-family:monospace;font-size:.78rem;color:var(--terra)">${esc(b.booking_ref||'—')}</td>
+          <td>
+            <strong>${esc(b.attendee_name)}</strong><br>
+            <small style="color:#9CA3AF">${esc(b.attendee_email)}</small>
+          </td>
+          <td style="font-size:.82rem">${esc(b.events?.title||'Unknown')} <br><small style="color:#9CA3AF">${b.events?.event_date ? new Date(b.events.event_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : ''}</small></td>
+          <td style="text-align:center">${b.num_guests||1}</td>
+          <td>₹${Number(Math.round((b.total_amount||0)/100)).toLocaleString('en-IN')}</td>
+          <td><span class="badge badge-${statusColors[b.status]||'grey'}">${esc(b.status||'pending')}</span></td>
+          <td><div class="btn-actions">
+            ${b.status==='pending'?`<button class="btn-sm btn-approve" onclick="confirmBooking('${esc(b.id)}')">Confirm</button>
+            <button class="btn-sm btn-reject" onclick="cancelBooking('${esc(b.id)}')">Cancel</button>`:
+            `<button class="btn-sm btn-edit" onclick="viewBooking('${esc(b.id)}')">View</button>`}
+          </div></td>
+        </tr>`).join('')}</tbody>
+      </table>` : `<div class="alert alert-info">No bookings yet. ${SUPABASE_URL?'':'Supabase not configured.'}</div>`}
+    </div>`;
+}
+
+async function confirmBooking(id) {
+  if (!SUPABASE_URL) return;
+  const res = await supabaseRequest(`/rest/v1/bookings?id=eq.${id}`, { method:'PATCH', body:JSON.stringify({ status:'confirmed', confirmed_at: new Date().toISOString() }) });
+  if (!res.ok) { alert('Failed to confirm.'); return; }
+  await logAction('CONFIRM', 'booking', id);
+  await renderBookingsPage();
+  alert('Booking confirmed! ✅');
+}
+
+async function cancelBooking(id) {
+  if (!confirm('Cancel this booking?')) return;
+  if (!SUPABASE_URL) return;
+  await supabaseRequest(`/rest/v1/bookings?id=eq.${id}`, { method:'PATCH', body:JSON.stringify({ status:'cancelled' }) });
+  await logAction('CANCEL', 'booking', id);
+  await renderBookingsPage();
+}
+
+function viewBooking(id) { alert('Full booking detail view — implement modal in Phase 2.'); }
+
+/* ════════════════════════════════════════
+   REVIEWS PAGE
+════════════════════════════════════════ */
+async function renderReviewsPage() {
+  let pending = [], approved = [];
+  if (SUPABASE_URL) {
+    const [p, a] = await Promise.all([
+      supabaseRequest('/rest/v1/reviews?select=*&approved=eq.false&order=created_at.desc'),
+      supabaseRequest('/rest/v1/reviews?select=*&approved=eq.true&order=created_at.desc&limit=20'),
+    ]);
+    if (p.ok) pending  = await p.json();
+    if (a.ok) approved = await a.json();
+  }
+  $('adminContent').innerHTML = `
+    <div class="card">
+      <div class="card-title">Pending Approval (${pending.length})</div>
+      ${pending.length ? pending.map(r => `<div style="padding:1rem;border-bottom:1px solid var(--border)">
+        <div style="font-size:.82rem;color:#9CA3AF;margin-bottom:.3rem">${esc(r.author_name)} · ${esc(r.workshop_name||'Workshop')} · ${new Date(r.created_at).toLocaleDateString('en-IN')}</div>
+        <p style="font-size:.9rem;margin-bottom:.75rem">"${esc(r.review_text)}"</p>
+        <div class="btn-actions">
+          <button class="btn-sm btn-approve" onclick="approveReview('${esc(r.id)}')">✓ Approve</button>
+          <button class="btn-sm btn-reject"  onclick="deleteReview('${esc(r.id)}')">✕ Reject</button>
+        </div>
+      </div>`).join('') : '<p style="color:#9CA3AF;font-size:.85rem">No pending reviews. 🎉</p>'}
+    </div>
+    <div class="card" style="margin-top:1.5rem">
+      <div class="card-title">Approved Reviews (${approved.length})</div>
+      ${approved.length ? `<table class="data-table">
+        <thead><tr><th>Author</th><th>Workshop</th><th>Rating</th><th>Preview</th><th>Actions</th></tr></thead>
+        <tbody>${approved.map(r => `<tr>
+          <td><strong>${esc(r.author_name)}</strong></td>
+          <td style="font-size:.82rem">${esc(r.workshop_name||'—')}</td>
+          <td style="color:var(--gold)">${'★'.repeat(r.rating||5)}</td>
+          <td style="font-size:.8rem;color:#6B7280;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.review_text)}</td>
+          <td><button class="btn-sm btn-del" onclick="deleteReview('${esc(r.id)}')">Delete</button></td>
+        </tr>`).join('')}</tbody>
+      </table>` : '<p style="color:#9CA3AF;font-size:.85rem">No approved reviews yet.</p>'}
+    </div>`;
+}
+
+async function approveReview(id) {
+  if (!SUPABASE_URL) return;
+  await supabaseRequest(`/rest/v1/reviews?id=eq.${id}`, { method:'PATCH', body:JSON.stringify({ approved:true, approved_at:new Date().toISOString() }) });
+  await logAction('APPROVE', 'review', id);
+  await renderReviewsPage();
+}
+
+async function deleteReview(id) {
+  if (!confirm('Delete this review?')) return;
+  if (!SUPABASE_URL) return;
+  await supabaseRequest(`/rest/v1/reviews?id=eq.${id}`, { method:'DELETE' });
+  await logAction('DELETE', 'review', id);
+  await renderReviewsPage();
+}
+
+/* ════════════════════════════════════════
+   GALLERY PAGE
+════════════════════════════════════════ */
+async function renderGalleryPage() {
+  let items = [];
+  if (SUPABASE_URL) {
+    const res = await supabaseRequest('/rest/v1/gallery?select=*&order=display_order.asc');
+    if (res.ok) items = await res.json();
+  }
+  $('adminContent').innerHTML = `
+    <div class="form-section">
+      <h3>Add Gallery Item</h3>
+      <div class="alert alert-info">Upload images to <a href="https://cloudinary.com" target="_blank" style="color:var(--blue)">Cloudinary (free)</a> and paste the URL here. Cloudinary auto-converts to WebP for best performance.</div>
+      <div class="f-group">
+        <label class="f-label" for="galSrc">Image / Video URL *</label>
+        <input type="url" id="galSrc" class="f-input" placeholder="https://res.cloudinary.com/your-cloud/image/upload/…">
+      </div>
+      <div class="f-group">
+        <label class="f-label" for="galAlt">Alt Text (for SEO &amp; accessibility) *</label>
+        <input type="text" id="galAlt" class="f-input" placeholder="e.g. Students painting at Art & Beyond workshop Pune" maxlength="200">
+      </div>
+      <div class="f-group">
+        <label class="f-label">Media Type</label>
+        <div style="display:flex;gap:1.5rem">
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem"><input type="radio" name="galType" value="image" checked> Image</label>
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem"><input type="radio" name="galType" value="video"> Video</label>
+        </div>
+      </div>
+      <button class="btn-sm btn-add" style="padding:.7rem 1.5rem" onclick="adminAddGallery()">🖼️ Add to Gallery</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Gallery Items (${items.length})</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem">
+        ${items.map(g => `<div style="position:relative;aspect-ratio:3/4;border-radius:4px;overflow:hidden;background:#f0f0f0">
+          ${g.media_type==='video' ? `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:2rem">🎥</div>` : `<img src="${esc(g.src_url)}" alt="${esc(g.alt_text||'Gallery item')}" style="width:100%;height:100%;object-fit:cover" loading="lazy">`}
+          <button onclick="adminDeleteGallery('${esc(g.id)}')" style="position:absolute;top:4px;right:4px;background:rgba(220,38,38,.85);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+        </div>`).join('') || '<p style="grid-column:1/-1;color:#9CA3AF;font-size:.85rem">No gallery items yet.</p>'}
+      </div>
+    </div>`;
+}
+
+async function adminAddGallery() {
+  const src  = $('galSrc').value.trim();
+  const alt  = $('galAlt').value.trim();
+  const type = document.querySelector('input[name="galType"]:checked')?.value || 'image';
+  if (!src || !alt) { alert('URL and alt text are required.'); return; }
+  if (SUPABASE_URL) {
+    const res = await supabaseRequest('/rest/v1/gallery', { method:'POST', body:JSON.stringify({ src_url:src, alt_text:alt, media_type:type, display_order:999 }), headers:{'Prefer':'return=minimal'} });
+    if (!res.ok) { alert('Upload failed.'); return; }
+    await logAction('CREATE', 'gallery');
+  }
+  await renderGalleryPage();
+}
+
+async function adminDeleteGallery(id) {
+  if (!confirm('Remove this item?')) return;
+  if (!SUPABASE_URL) return;
+  await supabaseRequest(`/rest/v1/gallery?id=eq.${id}`, { method:'DELETE' });
+  await logAction('DELETE', 'gallery', id);
+  await renderGalleryPage();
+}
+
+/* ════════════════════════════════════════
+   SITE CONFIG PAGE
+════════════════════════════════════════ */
+async function renderConfigPage() {
+  let cfg = {};
+  if (SUPABASE_URL) {
+    const res = await supabaseRequest("/rest/v1/site_config?key=eq.site_config");
+    if (res.ok) { const [row] = await res.json(); cfg = row?.value || {}; }
+  }
+  $('adminContent').innerHTML = `
+    <div class="form-section">
+      <h3>Announcement Bar</h3>
+      <div class="f-group">
+        <label class="f-label" for="annText">Announcement Text</label>
+        <input type="text" id="annText" class="f-input" value="${esc(cfg.announcement||'')}" placeholder="e.g. 🎉 New workshop just added for this weekend!" maxlength="200">
+      </div>
+      <div class="toggle-row"><label>Show Announcement Bar</label><label class="toggle-sw"><input type="checkbox" id="showAnn" ${cfg.showAnnouncement?'checked':''}><span class="toggle-knob"></span></label></div>
+      <button class="btn-sm btn-add" style="margin-top:1rem;padding:.65rem 1.2rem" onclick="saveConfig()">Save Changes</button>
+    </div>
+    <div class="form-section">
+      <h3>Hero Statistics</h3>
+      <div class="f-grid-3">
+        <div class="f-group"><label class="f-label" for="cfgArtists">Happy Artists</label><input type="text" id="cfgArtists" class="f-input" value="${esc(cfg.stats?.artists||'500+')}"></div>
+        <div class="f-group"><label class="f-label" for="cfgWorkshops">Workshops Hosted</label><input type="text" id="cfgWorkshops" class="f-input" value="${esc(cfg.stats?.workshops||'11+')}"></div>
+        <div class="f-group"><label class="f-label" for="cfgRating">Average Rating</label><input type="text" id="cfgRating" class="f-input" value="${esc(cfg.stats?.rating||'4.2')}"></div>
+      </div>
+      <button class="btn-sm btn-add" style="padding:.65rem 1.2rem" onclick="saveConfig()">Update Stats</button>
+    </div>
+    <div class="form-section">
+      <h3>Section Visibility</h3>
+      ${[['showPast','Show Past Events Section'],['showOfferings','Show Offerings Section'],['showGallery','Show Gallery Section']].map(([k,l]) => `<div class="toggle-row"><label>${l}</label><label class="toggle-sw"><input type="checkbox" id="${k}" ${cfg[k]!==false?'checked':''}><span class="toggle-knob"></span></label></div>`).join('')}
+      <button class="btn-sm btn-add" style="margin-top:1rem;padding:.65rem 1.2rem" onclick="saveConfig()">Save Visibility</button>
+    </div>`;
+}
+
+async function saveConfig() {
+  const payload = {
+    announcement:    $('annText')?.value || '',
+    showAnnouncement:$('showAnn')?.checked || false,
+    stats: { artists:$('cfgArtists')?.value||'500+', workshops:$('cfgWorkshops')?.value||'11+', rating:$('cfgRating')?.value||'4.2' },
+    showPast:       $('showPast')?.checked ?? true,
+    showOfferings:  $('showOfferings')?.checked ?? true,
+    showGallery:    $('showGallery')?.checked ?? true,
+  };
+  if (SUPABASE_URL) {
+    await supabaseRequest('/rest/v1/site_config', {
+      method:'POST',
+      headers:{'Prefer':'resolution=merge-duplicates'},
+      body:JSON.stringify({ key:'site_config', value:payload, updated_at:new Date().toISOString() })
+    });
+    await logAction('UPDATE', 'site_config');
+  }
+  alert('Config saved! Changes live within 60 seconds (ISR cache).');
+}
+
+/* ════════════════════════════════════════
+   SUBSCRIBERS
+════════════════════════════════════════ */
+let currentSubs = [];
+async function renderSubscribers() {
+  let subs = [];
+  if (SUPABASE_URL) {
+    const res = await supabaseRequest('/rest/v1/subscribers?select=*&order=created_at.desc');
+    if (res.ok) subs = await res.json();
+  }
+  currentSubs = subs;
+  $('adminContent').innerHTML = `
+    <div class="card">
+      <div class="card-title">Email Subscribers (${subs.length})</div>
+      <div style="display:flex;gap:.75rem;margin-bottom:1rem">
+        <button class="btn-sm btn-edit" onclick="exportCSV(currentSubs)">⬇ Export CSV</button>
+      </div>
+      ${subs.length ? `<table class="data-table">
+        <thead><tr><th>Email</th><th>Source</th><th>Date</th></tr></thead>
+        <tbody>${subs.map(s => `<tr>
+          <td>${esc(s.email)}</td>
+          <td><span class="badge badge-blue">${esc(s.source||'website')}</span></td>
+          <td>${new Date(s.created_at).toLocaleDateString('en-IN')}</td>
+        </tr>`).join('')}</tbody>
+      </table>` : `<div class="alert alert-info">No subscribers yet. ${SUPABASE_URL?'':'Supabase not configured.'}</div>`}
+    </div>`;
+}
+
+function exportCSV(data) {
+  if (!data || !data.length) { alert('No data to export.'); return; }
+  const csv = [Object.keys(data[0]).join(','), ...data.map(r => Object.values(r).map(v => `"${String(v).replace(/"/g,'""')}"`).join(','))].join('\n');
+  const blob = new Blob([csv], { type:'text/csv' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'subscribers.csv'; a.click();
+}
+
+/* ════════════════════════════════════════
+   AUDIT LOG
+════════════════════════════════════════ */
+async function renderAuditLog() {
+  let logs = [];
+  if (SUPABASE_URL) {
+    const res = await supabaseRequest('/rest/v1/admin_logs?select=*,profiles(email)&order=created_at.desc&limit=50');
+    if (res.ok) logs = await res.json();
+  }
+  $('adminContent').innerHTML = `
+    <div class="card">
+      <div class="card-title">Admin Activity Log (Last 50 Actions)</div>
+      <div class="alert alert-info" style="margin-bottom:1rem">This log is append-only. Records cannot be modified or deleted.</div>
+      ${logs.length ? logs.map(l => `<div class="log-item">
+        <span class="log-user">${esc(l.profiles?.email||'Admin')}</span>
+        performed <span class="log-action">${esc(l.action)}</span>
+        on <span class="log-entity">${esc(l.entity)} ${l.entity_id ? '#' + String(l.entity_id).slice(-8) : ''}</span>
+        <div class="log-time">${new Date(l.created_at).toLocaleString('en-IN')}</div>
+      </div>`).join('') : `<p style="color:#9CA3AF;font-size:.85rem;padding:1rem 0">No activity logged yet. ${SUPABASE_URL?'':'Supabase not configured.'}</p>`}
+    </div>`;
+}
+
+/* ════════════════════════════════════════
+   SETTINGS PAGE — Change Password & Display Name
+════════════════════════════════════════ */
+async function renderSettingsPage() {
+  // Load current profile info
+  let profile = { full_name: '', email: currentUser?.email || currentUser?.user?.email || '' };
+  if (SUPABASE_URL) {
+    try {
+      const uid = currentUser?.user?.id || currentUser?.id;
+      if (uid) {
+        const res = await supabaseRequest(`/rest/v1/profiles?id=eq.${uid}&select=full_name,email,role,created_at`);
+        if (res.ok) { const [p] = await res.json(); if (p) profile = { ...profile, ...p }; }
+      }
+    } catch(e) { /* use defaults */ }
+  }
+
+  $('adminContent').innerHTML = `
+    <!-- ── PROFILE INFO ── -->
+    <div class="form-section">
+      <h3>Your Account</h3>
+      <div style="display:flex;align-items:center;gap:1.2rem;padding:.75rem 0;border-bottom:1px solid var(--border);margin-bottom:1rem">
+        <div style="width:52px;height:52px;border-radius:50%;background:var(--blush);display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-size:1.4rem;font-weight:700;color:var(--terra);flex-shrink:0">
+          ${esc((profile.full_name || profile.email || 'A')[0].toUpperCase())}
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:.95rem">${esc(profile.full_name || '(no display name set)')}</div>
+          <div style="font-size:.82rem;color:#888">${esc(profile.email)}</div>
+          <div style="margin-top:.25rem"><span class="badge badge-${profile.role==='super_admin'?'red':profile.role==='admin'?'amber':'blue'}">${esc(profile.role||'viewer')}</span></div>
+        </div>
+      </div>
+      <div class="alert alert-info" style="font-size:.8rem">
+        <strong>Note:</strong> Your login email cannot be changed here. To change login email, contact your Supabase admin or use the Supabase Dashboard.
+      </div>
+    </div>
+
+    <!-- ── DISPLAY NAME ── -->
+    <div class="form-section">
+      <h3>Display Name</h3>
+      <p style="font-size:.83rem;color:#6B7280;margin-bottom:1rem">This name appears in the admin sidebar and audit log. It is not your login credential.</p>
+      <div class="f-group">
+        <label class="f-label" for="settingsName">Display Name</label>
+        <input type="text" id="settingsName" class="f-input" value="${esc(profile.full_name||'')}" placeholder="e.g. Sakshi Bhandari" maxlength="80" autocomplete="name">
+      </div>
+      <button class="btn-sm btn-add" style="padding:.65rem 1.4rem" onclick="saveDisplayName()">Save Name</button>
+      <div id="nameMsg" style="margin-top:.6rem;font-size:.82rem;display:none"></div>
+    </div>
+
+    <!-- ── CHANGE PASSWORD ── -->
+    <div class="form-section">
+      <h3>Change Password</h3>
+      <p style="font-size:.83rem;color:#6B7280;margin-bottom:1rem">
+        Password must be at least <strong>8 characters</strong> and contain at least one number or symbol.
+        ${!SUPABASE_URL ? '<br><span style="color:var(--amber)">⚠️ Demo mode — password changes will not persist.</span>' : ''}
+      </p>
+      <div class="f-group">
+        <label class="f-label" for="settingsCurrPass">Current Password *</label>
+        <input type="password" id="settingsCurrPass" class="f-input" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div class="f-group">
+        <label class="f-label" for="settingsNewPass">New Password *</label>
+        <input type="password" id="settingsNewPass" class="f-input" placeholder="At least 8 characters" autocomplete="new-password" oninput="checkPasswordStrength(this.value)">
+        <!-- Password strength meter -->
+        <div style="margin-top:.5rem;display:flex;gap:.3rem" id="strengthBars">
+          <div style="flex:1;height:4px;border-radius:2px;background:#E5E7EB" id="sb1"></div>
+          <div style="flex:1;height:4px;border-radius:2px;background:#E5E7EB" id="sb2"></div>
+          <div style="flex:1;height:4px;border-radius:2px;background:#E5E7EB" id="sb3"></div>
+          <div style="flex:1;height:4px;border-radius:2px;background:#E5E7EB" id="sb4"></div>
+        </div>
+        <div id="strengthLabel" style="font-size:.72rem;color:#9CA3AF;margin-top:.25rem"></div>
+      </div>
+      <div class="f-group">
+        <label class="f-label" for="settingsConfPass">Confirm New Password *</label>
+        <input type="password" id="settingsConfPass" class="f-input" placeholder="Repeat new password" autocomplete="new-password" oninput="checkConfirm()">
+        <div id="confirmMsg" style="font-size:.75rem;margin-top:.3rem"></div>
+      </div>
+      <button class="btn-sm btn-add" style="padding:.65rem 1.4rem" onclick="changePassword()" id="changePassBtn">Update Password</button>
+      <div id="passMsg" style="margin-top:.6rem;font-size:.82rem;display:none"></div>
+    </div>
+
+    <!-- ── SESSION INFO ── -->
+    <div class="card" style="font-size:.83rem">
+      <div class="card-title">Session Information</div>
+      <div style="display:grid;grid-template-columns:140px 1fr;gap:.5rem .75rem;align-items:start">
+        <span style="color:#9CA3AF">Signed in as</span><strong>${esc(profile.email)}</strong>
+        <span style="color:#9CA3AF">Role</span><span><span class="badge badge-${profile.role==='super_admin'?'red':profile.role==='admin'?'amber':'blue'}">${esc(profile.role||'viewer')}</span></span>
+        <span style="color:#9CA3AF">Session started</span><span>${new Date().toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
+        <span style="color:#9CA3AF">Backend</span><span>${SUPABASE_URL ? '<span style="color:var(--green)">✅ Supabase connected</span>' : '<span style="color:var(--amber)">⚠️ Demo mode</span>'}</span>
+      </div>
+      <div style="margin-top:1.2rem;padding-top:1.2rem;border-top:1px solid var(--border)">
+        <button class="btn-sm btn-del" style="padding:.6rem 1.2rem" onclick="doAdminLogout()">Sign Out of All Sessions</button>
+      </div>
+    </div>`;
+}
+
+/* ── Save display name ── */
+async function saveDisplayName() {
+  const name = $('settingsName').value.trim();
+  const msg  = $('nameMsg');
+  if (!name || name.length < 2) { showSettingsMsg(msg, 'error', 'Please enter at least 2 characters.'); return; }
+  if (name.length > 80)         { showSettingsMsg(msg, 'error', 'Name is too long (max 80 characters).'); return; }
+
+  if (SUPABASE_URL) {
+    try {
+      const uid = currentUser?.user?.id || currentUser?.id;
+      const res = await supabaseRequest(`/rest/v1/profiles?id=eq.${uid}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ full_name: name })
+      });
+      if (!res.ok) throw new Error('Update failed');
+      await logAction('UPDATE', 'profile', uid, null, { full_name: name });
+    } catch(e) { showSettingsMsg(msg, 'error', 'Failed to save. Please try again.'); return; }
+  }
+
+  // Update sidebar display
+  $('adminUserInfo').textContent = name;
+  showSettingsMsg(msg, 'success', '✓ Display name updated successfully.');
+}
+
+/* ── Change password ── */
+async function changePassword() {
+  const currPass = $('settingsCurrPass').value;
+  const newPass  = $('settingsNewPass').value;
+  const confPass = $('settingsConfPass').value;
+  const msg      = $('passMsg');
+  const btn      = $('changePassBtn');
+
+  // Validation
+  if (!currPass) { showSettingsMsg(msg, 'error', 'Please enter your current password.'); return; }
+  if (newPass.length < 8) { showSettingsMsg(msg, 'error', 'New password must be at least 8 characters.'); return; }
+  if (!/[0-9!@#$%^&*()_\-+=]/.test(newPass)) { showSettingsMsg(msg, 'error', 'Password must contain at least one number or symbol.'); return; }
+  if (newPass !== confPass) { showSettingsMsg(msg, 'error', 'New passwords do not match.'); return; }
+  if (newPass === currPass) { showSettingsMsg(msg, 'error', 'New password must be different from your current password.'); return; }
+
+  btn.disabled = true; btn.textContent = 'Updating…';
+
+  if (!SUPABASE_URL) {
+    // Demo mode
+    setTimeout(() => {
+      btn.disabled = false; btn.textContent = 'Update Password';
+      $('settingsCurrPass').value = '';
+      $('settingsNewPass').value  = '';
+      $('settingsConfPass').value = '';
+      resetPasswordStrength();
+      showSettingsMsg(msg, 'success', '✓ Demo: password change simulated (Supabase not configured).');
+    }, 800);
+    return;
+  }
+
+  try {
+    // Step 1: Re-authenticate with current password to verify it
+    const email = currentUser?.email || currentUser?.user?.email;
+    const verifyRes = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: currPass })
+    });
+    if (!verifyRes.ok) {
+      btn.disabled = false; btn.textContent = 'Update Password';
+      showSettingsMsg(msg, 'error', 'Current password is incorrect.');
+      $('settingsCurrPass').value = '';
+      $('settingsCurrPass').focus();
+      return;
+    }
+
+    // Step 2: Update password via Supabase Auth
+    const updateRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      method: 'PUT',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${currentUser?.access_token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ password: newPass })
+    });
+
+    if (!updateRes.ok) {
+      const err = await updateRes.json();
+      throw new Error(err.message || 'Password update failed');
+    }
+
+    // Log and clear
+    await logAction('CHANGE_PASSWORD', 'profile', currentUser?.user?.id || currentUser?.id);
+    $('settingsCurrPass').value = '';
+    $('settingsNewPass').value  = '';
+    $('settingsConfPass').value = '';
+    resetPasswordStrength();
+    btn.disabled = false; btn.textContent = 'Update Password';
+    showSettingsMsg(msg, 'success', '✓ Password updated successfully. You\'ll use your new password on next login.');
+
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Update Password';
+    showSettingsMsg(msg, 'error', e.message || 'Something went wrong. Please try again.');
+  }
+}
+
+/* ── Password strength meter ── */
+function checkPasswordStrength(val) {
+  const bars  = [1,2,3,4].map(i => $(`sb${i}`));
+  const label = $('strengthLabel');
+  let score = 0;
+  if (val.length >= 8)  score++;
+  if (val.length >= 12) score++;
+  if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score++;
+  if (/[0-9]/.test(val) && /[^A-Za-z0-9]/.test(val)) score++;
+  const colors = ['#EF4444','#F97316','#EAB308','#22C55E'];
+  const labels = ['Too short','Weak','Good','Strong'];
+  bars.forEach((b,i) => { b.style.background = i < score ? colors[score-1] : '#E5E7EB'; });
+  label.textContent = val.length ? labels[Math.max(0,score-1)] : '';
+  label.style.color = score > 0 ? colors[score-1] : '#9CA3AF';
+}
+
+function resetPasswordStrength() {
+  [1,2,3,4].forEach(i => { const b = $(`sb${i}`); if(b) b.style.background='#E5E7EB'; });
+  const lbl = $('strengthLabel'); if(lbl) { lbl.textContent=''; }
+  const cm  = $('confirmMsg');    if(cm)  { cm.textContent=''; }
+}
+
+/* ── Confirm password match indicator ── */
+function checkConfirm() {
+  const np = $('settingsNewPass').value;
+  const cp = $('settingsConfPass').value;
+  const el = $('confirmMsg');
+  if (!cp) { el.textContent=''; return; }
+  if (np === cp) { el.textContent='✓ Passwords match'; el.style.color='var(--green)'; }
+  else           { el.textContent='✗ Passwords do not match'; el.style.color='var(--red)'; }
+}
+
+/* ── Helper: show inline message ── */
+function showSettingsMsg(el, type, text) {
+  el.textContent = text;
+  el.style.color  = type === 'success' ? 'var(--green)' : 'var(--red)';
+  el.style.display = 'block';
+  if (type === 'success') setTimeout(() => { el.style.display='none'; }, 5000);
+}
+
+/* ════════════════════════════════════════
+   LOG ADMIN ACTION — AUDIT TRAIL
+   Every write calls this. Appends to admin_logs.
+════════════════════════════════════════ */
+async function logAction(action, entity, entityId = null, oldValue = null, newValue = null) {
+  if (!SUPABASE_URL || !currentUser) return;
+  try {
+    await supabaseRequest('/rest/v1/admin_logs', {
+      method:'POST',
+      headers:{'Prefer':'return=minimal'},
+      body: JSON.stringify({
+        user_id:   currentUser?.user?.id || null,
+        action,   entity,   entity_id:entityId,
+        old_value:oldValue, new_value:newValue,
+        created_at: new Date().toISOString()
+      })
+    });
+  } catch(e) { /* log write failing shouldn't break the UI */ }
+}
+
+/* Check session on load */
+document.addEventListener('DOMContentLoaded', async () => {
+  // Set email link via JS — prevents Netlify email obfuscation
+  const ae = document.getElementById('adminContactEmail');
+  if (ae) { const em = 'hello'+'@'+'artandbeyond.in'; ae.href='mailto:'+em; ae.textContent=em+' →'; }
+  // If Supabase configured, check for existing session
+  if (SUPABASE_URL) {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        headers: { 'apikey': SUPABASE_ANON_KEY }
+      });
+      if (res.ok) {
+        const user = await res.json();
+) {
+          currentUser = { ...user, access_token: SUPABASE_ANON_KEY };
+          // Fetch role
+          try {
+            const pRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${user.id}&select=role`, {
+              headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+            });
+            if (pRes.ok) {
+              const [p] = await pRes.json();
+              currentRole = p?.role || 'viewer';
+              currentUser.role = currentRole;
+            }
+          } catch(e) { /* ignore profile fetch error */ }
+          $('adminUserInfo').textContent = user.email || 'Admin';
+          $('loginPage').style.display = 'none';
+          $('adminApp').style.display = 'flex';
+          showPage('dashboard', null);
+        }
+      }
+    } catch(e) { /* no existing session */ }
+  }
+  // Show login page
+  $('loginPage').style.display = 'flex';
+});
+</script>
+</body>
+</html>

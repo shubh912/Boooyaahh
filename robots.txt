@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /admin/
+Disallow: /api/
+Disallow: /_headers
+
+Sitemap: https://artandbeyond.in/sitemap.xml
+
+# Art & Beyond — artandbeyond.in
+# SEO fix: robots.txt was missing (audit issue #2 under SEO)

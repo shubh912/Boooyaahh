@@ -1,0 +1,161 @@
+# ═══════════════════════════════════════════════════════════════
+# Art & Beyond — netlify.toml
+# Pure static site — zero build step, instant deploys.
+# Deploy: drag-and-drop entire folder into Netlify UI,
+#         or connect GitHub repo (no build command needed).
+# ═══════════════════════════════════════════════════════════════
+
+[build]
+  command = ""
+  publish = "."
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle  = false
+  minify  = false   # KEEP FALSE: inline CSS in HTML, minifier causes issues
+
+[build.processing.js]
+  bundle  = false
+  minify  = false   # KEEP FALSE: inline JS in HTML — Netlify's bundler
+                    # breaks complex inline <script> blocks (template literals,
+                    # long string concatenations). Minify only external .js files.
+
+[build.processing.html]
+  pretty_urls = true   # /privacy-policy → serves /privacy-policy.html
+
+[build.processing.images]
+  compress = true      # Lossless PNG/JPG compression — safe to enable
+
+# ─── REDIRECTS ───────────────────────────────────────────────
+
+[[redirects]]
+  from   = "/workshops-pune"
+  to     = "/#events"
+  status = 301
+
+[[redirects]]
+  from   = "/workshops-mumbai"
+  to     = "/#events"
+  status = 301
+
+[[redirects]]
+  from   = "/corporate-art-workshop"
+  to     = "/#offerings"
+  status = 301
+
+[[redirects]]
+  from   = "/corporate-art"
+  to     = "/#offerings"
+  status = 301
+
+[[redirects]]
+  from   = "/bachelorette-painting-party"
+  to     = "/#offerings"
+  status = 301
+
+[[redirects]]
+  from   = "/bachelorette-painting"
+  to     = "/#offerings"
+  status = 301
+
+[[redirects]]
+  from   = "/beginner-art-classes"
+  to     = "/#events"
+  status = 301
+
+[[redirects]]
+  from   = "/paint-and-sip-pune"
+  to     = "/#events"
+  status = 301
+
+[[redirects]]
+  from   = "/art-date-night"
+  to     = "/#events"
+  status = 301
+
+[[redirects]]
+  from   = "/privacy-policy"
+  to     = "/privacy-policy.html"
+  status = 200
+
+[[redirects]]
+  from   = "/terms"
+  to     = "/terms.html"
+  status = 200
+
+[[redirects]]
+  from   = "/refund-policy"
+  to     = "/refund-policy.html"
+  status = 200
+
+# www → non-www canonical (avoids duplicate content penalty)
+[[redirects]]
+  from   = "https://www.artandbeyond.in/*"
+  to     = "https://artandbeyond.in/:splat"
+  status = 301
+  force  = true
+
+# ─── HEADERS ─────────────────────────────────────────────────
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options           = "SAMEORIGIN"
+    X-Content-Type-Options    = "nosniff"
+    X-XSS-Protection          = "1; mode=block"
+    Referrer-Policy           = "strict-origin-when-cross-origin"
+    Permissions-Policy        = "camera=(), microphone=(), geolocation=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+    Content-Security-Policy   = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://images.unsplash.com https://res.cloudinary.com; media-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
+
+[[headers]]
+  for = "/admin.html"
+  [headers.values]
+    X-Robots-Tag  = "noindex, nofollow, noarchive"
+    Cache-Control = "no-store, no-cache, must-revalidate, proxy-revalidate"
+    Pragma        = "no-cache"
+    Expires       = "0"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/favicon*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800, stale-while-revalidate=86400"
+
+[[headers]]
+  for = "/apple-touch-icon.png"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/site.webmanifest"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+    Content-Type  = "application/manifest+json"
+
+[[headers]]
+  for = "/og-image.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+    Content-Type  = "image/svg+xml"
+
+[[headers]]
+  for = "/sitemap.xml"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+    Content-Type  = "application/xml; charset=utf-8"
+
+[[headers]]
+  for = "/robots.txt"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+    Content-Type  = "text/plain; charset=utf-8"
